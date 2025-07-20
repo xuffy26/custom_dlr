@@ -1,45 +1,38 @@
 import requests
+import json
+import logging
 
-# Constant config values
-CALLBACK_URL = "https://testtemple34teupdateevent.requestcatcher.com/"
-CHAT360_EMAIL = "partner+test@chat360.io"
-CHAT360_PASSWORD = "Test@123"
+logger = logging.getLogger(__name__)
 
-def get_fresh_token():
+def fetch_dlr_status(message_id, bearer_token):
+    """
+    Pull DLR status from Chat360 Campaign Report API using the message ID.
+    """
+    url = f"https://app.chat360.io/service/campaign/report?message_id={message_id}"
+    headers = {
+        "Authorization": f"Bearer {bearer_token}"
+    }
+
     try:
-        login_url = "https://app.chat360.io/api/auth/login"
-        credentials = {
-            "email": CHAT360_EMAIL,
-            "password": CHAT360_PASSWORD
-        }
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(login_url, json=credentials, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        return response.json().get("access")
-    except Exception as e:
-        print(f"[AUTH ERROR] {e}")
-        return None
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching DLR status: {e}")
+        return {"error": str(e)}
 
-def fetch_and_forward_dlr(message_id):
+def send_to_callback(callback_url, payload):
+    """
+    Send the final DLR log to the client's callback URL.
+    """
+    headers = {
+        "Content-Type": "application/json"
+    }
+
     try:
-        token = get_fresh_token()
-        if not token:
-            print(f"[ERROR] Token fetch failed for {message_id}")
-            return
-
-        headers = {"Authorization": f"Bearer {token}"}
-        dlr_url = f"https://app.chat360.io/service/campaign/report?message_id={message_id}"
-        dlr_response = requests.get(dlr_url, headers=headers)
-        dlr_data = dlr_response.json()
-
-        payload = {
-            "event": "template_dlr_status",
-            "message_id": message_id,
-            "status": dlr_data.get("status", "unknown"),
-            "reason": dlr_data.get("reason", "N/A")
-        }
-
-        res = requests.post(CALLBACK_URL, json=payload)
-        print(f"[INFO] DLR pushed: {message_id}, status: {payload['status']}")
-    except Exception as e:
-        print(f"[ERROR] DLR fetch/push failed for {message_id}: {e}")
+        response = requests.post(callback_url, headers=headers, data=json.dumps(payload), timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error sending to callback: {e}")
+        return {"error": str(e)}
