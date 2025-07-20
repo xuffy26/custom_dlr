@@ -1,42 +1,36 @@
-# custom_dlr/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from custom_dlr.tasks import fetch_and_send_dlr
 
-import json
-import requests
-from datetime import datetime, timedelta
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from apscheduler.schedulers.background import BackgroundScheduler
+class CustomDLRWebhook(APIView):
+    """
+    Receives the initial webhook with message_id and callback_url,
+    and delegates processing to the async task.
+    """
 
-scheduler = BackgroundScheduler()
-if not scheduler.running:
-    scheduler.start()
-
-CALLBACK_URL = "https://testtemple34teupdateevent.requestcatcher.com/"
-CHAT360_EMAIL = "partner+test@chat360.io"
-CHAT360_PASSWORD = "Test@123"
-
-@csrf_exempt
-def webhook_listener(request):
-    if request.method == 'POST':
+    def post(self, request):
         try:
-            data = json.loads(request.body)
-            event_type = data.get("event")
-            message_id = data.get("message_id")
+            message_id = request.data.get("message_id")
+            callback_url = request.data.get("callback_url")
+            bearer_token = request.data.get("bearer_token")
 
-            if event_type == "template_message_sent" and message_id:
-                run_time = datetime.now() + timedelta(minutes=2)
-                scheduler.add_job(
-                    func=fetch_and_forward_dlr,
-                    trigger='date',
-                    run_date=run_time,
-                    args=[message_id]
-                )
-                return JsonResponse({"status": "scheduled"})
-            return JsonResponse({"status": "ignored or invalid"})
+            if not all([message_id, callback_url, bearer_token]):
+                return Response({
+                    "status": False,
+                    "message": "Missing required parameters: message_id, callback_url, bearer_token"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Trigger Celery task
+            fetch_and_send_dlr.delay(message_id, bearer_token, callback_url)
+
+            return Response({
+                "status": True,
+                "message": "DLR task accepted for processing"
+            }, status=status.HTTP_200_OK)
+
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Invalid method"}, status=405)
-
-# Add this dummy implementation temporarily to avoid 500 error
-def fetch_and_forward_dlr(message_id):
-    print(f"Fetching and forwarding for message_id: {message_id}")
+            return Response({
+                "status": False,
+                "message": f"Error occurred: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
