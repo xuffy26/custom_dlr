@@ -1,8 +1,6 @@
-# custom_dlr/urls.py
-
 from django.urls import path
-from .views import webhook_listener
+from .views import TriggerDLRStatusCheck
 
 urlpatterns = [
-    path('chat360/webhook/', webhook_listener),
+    path("trigger-dlr/", TriggerDLRStatusCheck.as_view(), name="trigger_dlr_status_check"),
 ]
