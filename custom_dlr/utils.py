@@ -1,7 +1,7 @@
 import requests
 
 # Constant config values
-CALLBACK_URL = "http://117.206.82.68/srh-desktopwidget/chatwadlr/wabadelivery"
+CALLBACK_URL = "https://testtemple34teupdateevent.requestcatcher.com/"
 CHAT360_EMAIL = "partner+test@chat360.io"
 CHAT360_PASSWORD = "Test@123"
 
