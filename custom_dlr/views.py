@@ -11,7 +11,7 @@ scheduler = BackgroundScheduler()
 if not scheduler.running:
     scheduler.start()
 
-CALLBACK_URL = "http://117.206.82.68/srh-desktopwidget/chatwadlr/wabadelivery"
+CALLBACK_URL = "https://chat360workspace.slack.com/archives/D08R2AH92ES/p1746613792969019"
 CHAT360_EMAIL = "partner+test@chat360.io"
 CHAT360_PASSWORD = "Test@123"
 
