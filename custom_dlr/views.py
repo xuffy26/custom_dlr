@@ -1,3 +1,5 @@
+# custom_dlr/views.py
+
 import json
 import requests
 from datetime import datetime, timedelta
@@ -34,3 +36,7 @@ def webhook_listener(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
+
+# Add this dummy implementation temporarily to avoid 500 error
+def fetch_and_forward_dlr(message_id):
+    print(f"Fetching and forwarding for message_id: {message_id}")
